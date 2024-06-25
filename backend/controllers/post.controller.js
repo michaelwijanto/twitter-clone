@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Post from "../models/post.model.js";
 import { v2 as cloudinary } from "cloudinary";
+import Notification from "../models/notification.model.js";
 
 export const createPost = async (req, res) => {
   try {
@@ -86,6 +87,43 @@ export const commentPost = async (req, res) => {
     res.status(200).json(post);
   } catch (error) {
     console.log("Error in comment post", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const likeUnlikePost = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id: postId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const isUserLiked = post.likes.includes(userId);
+
+    if (isUserLiked) {
+      await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+      await Notification.findOneAndDelete({
+        from: userId,
+        to: post.user,
+        type: "like",
+      });
+      res.status(200).json({ message: "Post unliked successfully" });
+    } else {
+      post.likes.push(userId);
+      await post.save();
+      const notif = new Notification({
+        from: userId,
+        to: post.user,
+        type: "like",
+      });
+      await notif.save();
+      res.status(200).json({ message: "Post liked successfully" });
+    }
+  } catch (error) {
+    console.log("Error in like unlike post", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
