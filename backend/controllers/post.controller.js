@@ -195,3 +195,27 @@ export const getLikedPost = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getUserPost = async (req, res) => {
+  const { username } = req.params;
+  try {
+    const user = await User.findOne(username);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const posts = await Post.find({ user: user._id })
+      .sort({ createdAt: -1 })
+      .populate({ path: "user", select: "-password" })
+      .populate({ path: "comments.user", select: "-password" }); //populate lets you pull referenced data
+
+    if (posts.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    res.status(200).json(posts);
+  } catch (error) {
+    console.log("Error in getting all following post", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
