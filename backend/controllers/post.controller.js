@@ -3,6 +3,23 @@ import Post from "../models/post.model.js";
 import { v2 as cloudinary } from "cloudinary";
 import Notification from "../models/notification.model.js";
 
+export const getAllPost = async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .populate({ path: "user", select: "-password" })
+      .populate({ path: "comments.user", select: "-password" }); //populate lets you pull referenced data
+
+    if (posts.length === 0) {
+      return res.status(200).json([]);
+    }
+    res.status(200).json(posts);
+  } catch (error) {
+    console.log("Error in getting all post", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const createPost = async (req, res) => {
   try {
     const { text } = req.body;
@@ -105,6 +122,7 @@ export const likeUnlikePost = async (req, res) => {
 
     if (isUserLiked) {
       await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+      await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
       await Notification.findOneAndDelete({
         from: userId,
         to: post.user,
@@ -114,6 +132,8 @@ export const likeUnlikePost = async (req, res) => {
     } else {
       post.likes.push(userId);
       await post.save();
+      await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
+
       const notif = new Notification({
         from: userId,
         to: post.user,
@@ -124,6 +144,28 @@ export const likeUnlikePost = async (req, res) => {
     }
   } catch (error) {
     console.log("Error in like unlike post", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getLikedPost = async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const likedPosts = await Post.find({ _id: { $in: user.likedPosts } })
+      .sort({ createdAt: -1 })
+      .populate({ path: "user", select: "-password" })
+      .populate({ path: "comments.user", select: "-password" }); //populate lets you pull referenced data
+
+    if (likedPosts.length === 0) {
+      return res.status(200).json([]);
+    }
+    res.status(200).json(likedPosts);
+  } catch (error) {
+    console.log("Error in getting all liked post", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
