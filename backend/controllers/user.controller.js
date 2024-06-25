@@ -1,6 +1,7 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
+import { v2 as cloudinary } from "cloudinary";
 
 export const getUserProfile = async (req, res) => {
   const { username } = req.params;
@@ -87,26 +88,23 @@ export const getSuggested = async (req, res) => {
   }
 };
 
-export const updateUserProfile = async (req, res) => {
-  const { fullName, email, username, currentPassword, newPassword, bio, link } =
+export const updateUser = async (req, res) => {
+  const { fullName, email, username, currPassword, newPassword, bio, link } =
     req.body;
   let { profileImg, coverImg } = req.body;
   const userId = req.user._id;
   try {
-    const user = await User.findById(userId);
+    let user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (
-      (!newPassword && currentPassword) ||
-      (newPassword && !currentPassword)
-    ) {
+    if ((!newPassword && currPassword) || (newPassword && !currPassword)) {
       return res.status(400).json({ error: "Please provide both password" });
     }
 
-    if (currentPassword && newPassword) {
-      const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (currPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currPassword, user.password);
       if (!isMatch) return res.status(400).json({ error: "Invalid password" });
       if (newPassword.length < 4)
         return res
@@ -118,9 +116,37 @@ export const updateUserProfile = async (req, res) => {
     }
 
     if (profileImg) {
+      //remove previous img to reduce storage capacity
+      if (user.profileImg) {
+        await cloudinary.uploader.destroy(
+          user.profileImg.split("/").pop().split(".")[0]
+        );
+      }
+      const uploaded = await cloudinary.uploader.upload(profileImg);
+      profileImg = uploaded.secure_url;
     }
     if (coverImg) {
+      //remove previous img to reduce storage capacity
+      if (user.coverImg) {
+        await cloudinary.uploader.destroy(
+          user.coverImg.split("/").pop().split(".")[0]
+        );
+      }
+      const uploaded = await cloudinary.uploader.upload(coverImg);
+      coverImg = uploaded.secure_url;
     }
+
+    user.fullName = fullName || user.fullName;
+    user.email = email || user.email;
+    user.username = username || user.username;
+    user.bio = bio || user.bio;
+    user.link = link || user.link;
+    user.profileImg = profileImg || user.profileImg;
+    user.coverImg = coverImg || user.coverImg;
+
+    user = await user.save();
+    user.password = null; //remove password on response json
+    return res.status(200).json(user);
   } catch (error) {
     console.log("Error in updateUserProfile", error.message);
     res.status(500).json({ error: error.message });
