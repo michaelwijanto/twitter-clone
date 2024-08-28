@@ -31,17 +31,17 @@ const SignUpPage = () => {
 
         const data = await res.json();
         if (!res.ok)
-          throw new Error(data.Error || "Failed to create an account");
+          throw new Error(data.error || "Failed to create an account");
         // console.log(data);
-        setFormData({ email: "", username: "", fullName: "", password: "" });
         return data;
       } catch (error) {
         // console.log(error);
-        throw error;
+        throw new Error(error);
       }
     },
     onSuccess: () => {
       toast.success("Account created succesfully");
+      setFormData({ email: "", username: "", fullName: "", password: "" });
     },
   });
   const handleSubmit = (e) => {
