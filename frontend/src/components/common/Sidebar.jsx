@@ -6,16 +6,16 @@ import { FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { BiLogOut } from "react-icons/bi";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 const Sidebar = () => {
-  const logout = "/api/auth/logout";
+  const queryClient = useQueryClient();
 
-  const { mutate, isPending, isError, error } = useMutation({
+  const { mutate } = useMutation({
     mutationFn: async () => {
       try {
-        const res = await fetch(logout, {
+        const res = await fetch("/api/auth/logout", {
           method: "POST",
         });
 
@@ -29,7 +29,10 @@ const Sidebar = () => {
       }
     },
     onSuccess: () => {
-      toast.success("Logout successful");
+      queryClient.invalidateQueries({ queryKey: ["authUser"] });
+    },
+    onError: () => {
+      toast.error("Logout failed");
     },
   });
   const data = {

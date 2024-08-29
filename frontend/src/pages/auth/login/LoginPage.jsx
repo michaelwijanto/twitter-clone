@@ -6,20 +6,20 @@ import Icosvg from "../../../components/svgs/Ico";
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
 
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
-  const login = "/api/auth/login";
+
+  const queryClient = useQueryClient();
 
   const { mutate, isError, isPending, error } = useMutation({
     mutationFn: async ({ username, password }) => {
       try {
-        const res = await fetch(login, {
+        const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -35,8 +35,9 @@ const LoginPage = () => {
       }
     },
     onSuccess: () => {
-      toast.success("Login successful");
       setFormData({ username: "", password: "" });
+      //invalidate query to refetch
+      queryClient.invalidateQueries({ queryKey: ["authUser"] }); //referencing query in App.jsx
     },
   });
 
