@@ -14,7 +14,7 @@ import {
 const router = express.Router();
 
 router.get("/", protectRoute, getAllPost);
-router.get("/:id", protectRoute, getFollowingPost);
+router.get("/following", protectRoute, getFollowingPost);
 router.get("/likes/:id", protectRoute, getLikedPost);
 router.get("/user/:username", protectRoute, getUserPost);
 router.post("/create", protectRoute, createPost);
