@@ -4,5 +4,9 @@ A twitter clone project
 Deployment site: https://whistle-s6rf.onrender.com
 
 Tech stacks: MongoDB, Express, React, Node.js, Tailwind
+
 Authentication with JSONWEBTOKENS (JWT)
-created using React and Vite
+
+React Query for Data Fetching, Caching
+
+Image Uploads using Cloudinary
